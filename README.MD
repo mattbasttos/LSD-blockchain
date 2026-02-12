@@ -157,4 +157,5 @@ O sistema implementa estritamente os requisitos do trabalho:
 ---
 
 **Autores:** Mateus Bastos, Matheus Azevedo e Alexandre Moraes
+
 **Disciplina:** Laboratório de Sistemas Distribuídos - UFPA 2025
