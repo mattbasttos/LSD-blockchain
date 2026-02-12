@@ -9,7 +9,8 @@ RESPONSE_CHAIN  = "RESPONSE_CHAIN"   # Envio da blockchain para sincronização
 # CONFIGURAÇÕES DA REDE
 BUFFER_SIZE = 4096       # Tamanho do buffer de recebimento do socket
 ENCODING    = 'utf-8'    # Codificação padrão das mensagens
-DIFFICULTY  = "000"      # Dificuldade fixa do Proof of Work [cite: 55]
+DIFFICULTY  = "000"      # Dificuldade fixa do Proof of Work 
+MINING_REWARD = 10.0     # Valor da recompensa por bloco
 
 # UTILITÁRIOS DE PROTOCOLO
 
