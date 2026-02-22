@@ -8,19 +8,19 @@ Para executar este projeto, você precisa apenas de:
 
 * **Python 3.6 ou superior** instalado.
 * Sistema Operacional: Windows, Linux ou macOS.
-* **Não é necessário instalar bibliotecas externas** (o código utiliza apenas bibliotecas padrão do Python: `socket`, `threading`, `json`, `hashlib`, `sys`, `time`).
+* **Não é necessário instalar bibliotecas externas** (o código utiliza apenas bibliotecas padrão do Python: `socket`, `threading`, `json`, `hashlib`, `sys`, `time`, `struct`, `uuid`).
 
 ## 📂 Estrutura dos Arquivos
 
 Certifique-se de que todos os arquivos abaixo estejam na mesma pasta:
 
 * `main.py`: Ponto de entrada e interface CLI.
-* `node.py`: Gerenciamento de rede P2P e Sockets.
-* `blockchain.py`: Regras de negócio, validação da cadeia e saldo.
-* `block.py`: Estrutura de dados do Bloco.
+* `node.py`: Gerenciamento de rede P2P e Sockets (TCP com empacotamento 4-bytes).
+* `blockchain.py`: Regras de negócio, validação da cadeia, saldo e Bloco Gênesis.
+* `block.py`: Estrutura de dados do Bloco e cálculo de hash determinístico.
 * `transactions.py`: Estrutura de dados da Transação.
 * `consensus.py`: Algoritmo de Mineração (Proof of Work).
-* `protocol.py`: Constantes e configurações de mensagens JSON.
+* `protocol.py`: Constantes, funções de serialização TCP e formatação de mensagens JSON.
 
 ---
 
@@ -67,7 +67,7 @@ python main.py 127.0.0.1 5002 127.0.0.1:5000
 
 ### Cenário 2: Execução Distribuída (Laboratório/LAN)
 
-Para rodar em computadores diferentes na mesma rede Wi-Fi ou cabeada.
+Para rodar em computadores diferentes na mesma rede Wi-Fi ou cabeada e se comunicar com os outros grupos.
 
 1. **Descubra o IP** de cada máquina (comando `ipconfig` no Windows ou `hostname -I` no Linux).
 2. **Firewall:** Certifique-se de que o firewall permite conexões na porta escolhida (ex: 5000).
@@ -95,20 +95,16 @@ Ao iniciar, você verá o seguinte menu interativo:
 
 1. **Criar Transação:**
 * Solicita o `IP:PORTA` do destinatário e o valor.
-* O sistema verifica se você tem saldo positivo (regra: não permitir saldo negativo ).
-
-
+* O sistema verifica se você tem saldo positivo (regra: não permitir saldo negativo).
 * A transação é propagada para a rede via mensagem `NEW_TRANSACTION`.
-
-
 
 
 2. **Minerar Bloco:**
 * Executa o *Proof of Work* (encontrar hash iniciando com "000").
+* Adiciona automaticamente a **recompensa de 50.0** ao minerador .
 
 
-* Empacota as transações pendentes.
-* Ao terminar, propaga o bloco (`NEW_BLOCK`) para todos os nós conectados.
+* Empacota as transações pendentes e propaga o bloco (`NEW_BLOCK`) para todos os nós conectados.
 
 
 3. **Visualizar Blockchain:**
@@ -124,35 +120,50 @@ Ao iniciar, você verá o seguinte menu interativo:
 * Se um par tiver uma cadeia maior e válida, seu nó substituirá a cadeia local automaticamente (Regra da Cadeia Mais Longa).
 
 
-
-
 6. **Sair:** Desliga o nó.
 
 ---
 
-## 🛠️ Detalhes Técnicos e Protocolo
+## 🛠️ Detalhes Técnicos e Interoperabilidade
 
-O sistema implementa estritamente os requisitos do trabalho:
+O sistema implementa estritamente os requisitos do **Padrão de Interoperabilidade - Blockchain LSD 2025**:
 
-* **Comunicação:** Sockets TCP/IP.
-* **Serialização:** JSON.
-* **Consenso:** Proof of Work com dificuldade fixa ("000").
 * 
-**Mensagens Implementadas** :
+**Comunicação Segura (TCP):** As mensagens são transmitidas com um prefixo de 4 bytes (big-endian) indicando o tamanho do payload , evitando problemas de fragmentação de pacotes no socket.
 
+
+* 
+**Serialização Estrita:** Os cálculos de Hash utilizam `json.dumps` com `sort_keys=True` garantindo integridade e consistência entre todos os nós .
+
+
+* 
+**Bloco Gênesis Padronizado:** Todos os nós iniciam com um bloco gênesis cujo hash é obrigatoriamente `0567c32b97c36a70d3f4cb865710d329a0be5d713c8cb1b8c769fbaf89f1afb7` .
+
+
+* 
+**Recompensa de Mineração:** A primeira transação de um bloco minerado gera um valor de `50.0` a partir da origem `"coinbase"` .
+
+
+* 
+**Estrutura de Transação:** Utiliza os campos `id` (UUID), `origem` e `destino` .
+
+
+* **Consenso:** Proof of Work com dificuldade fixa de "000".
+
+**Mensagens Implementadas:**
 
 * `NEW_TRANSACTION`: Propagação de transferência de fundos.
 * `NEW_BLOCK`: Propagação de bloco minerado.
 * `REQUEST_CHAIN`: Pedido de sincronização (entrada na rede).
 * `RESPONSE_CHAIN`: Envio da blockchain completa.
 
-
+---
 
 ## ⚠️ Solução de Problemas Comuns
 
 * **Erro "Address already in use":** Você está tentando abrir um nó numa porta que já está aberta. Mude a porta (ex: de 5000 para 5001) ou feche o terminal anterior.
 * **Nós não se conectam (Distribuído):** Verifique se os computadores conseguem se "pingar". Desative temporariamente o Firewall do Windows para testar.
-* **Transação Rejeitada:** Você tentou enviar mais dinheiro do que possui. Lembre-se: No início, ninguém tem saldo. Minere um bloco primeiro para ganhar recompensas ou crie uma transação vinda do sistema (modificando o código para testes).
+* **Transação Rejeitada:** Você tentou enviar mais dinheiro do que possui. Lembre-se: No início, ninguém tem saldo. **Minere um bloco primeiro** (Opção 2) para ganhar a recompensa de 50.0 da Coinbase.
 
 ---
 
