@@ -1,50 +1,58 @@
 import json
+import struct
 
-# TIPOS DE MENSAGENS
-NEW_TRANSACTION = "NEW_TRANSACTION"  # Envio de uma nova transação
-NEW_BLOCK       = "NEW_BLOCK"        # Envio de um bloco minerado
-REQUEST_CHAIN   = "REQUEST_CHAIN"    # Solicitação da blockchain completa (ao entrar na rede)
-RESPONSE_CHAIN  = "RESPONSE_CHAIN"   # Envio da blockchain para sincronização
+NEW_TRANSACTION = "NEW_TRANSACTION"
+NEW_BLOCK       = "NEW_BLOCK"
+REQUEST_CHAIN   = "REQUEST_CHAIN"
+RESPONSE_CHAIN  = "RESPONSE_CHAIN"
 
-# CONFIGURAÇÕES DA REDE
-BUFFER_SIZE = 4096       # Tamanho do buffer de recebimento do socket
-ENCODING    = 'utf-8'    # Codificação padrão das mensagens
-DIFFICULTY  = "000"      # Dificuldade fixa do Proof of Work 
-MINING_REWARD = 10.0     # Valor da recompensa por bloco
+ENCODING    = 'utf-8'
+DIFFICULTY  = "000"
+MINING_REWARD = 50.0  # Novo valor da recompensa [cite: 189]
 
-# UTILITÁRIOS DE PROTOCOLO
-
-def build_message(msg_type, data=None, sender_host=None, sender_port=None):
+def build_message(msg_type, payload=None, sender_address=None):
     """
-    Cria um dicionário padronizado para comunicação via socket.
-    Isso garante que todos os nós (mesmo de outros grupos) recebam
-    o JSON no formato esperado.
-    
-    Estrutura Padrão:
-    {
-        "type": "NEW_BLOCK",
-        "data": { ...dados do bloco... },
-        "sender_host": "192.168.1.10",
-        "sender_port": 5000
-    }
+    Cria a estrutura base exigida pelo padrão [cite: 111-116].
     """
-    message = {
-        "type": msg_type,
-        "data": data,
-        "timestamp": 0 # Pode ser útil para logs ou desempate
-    }
-    
-    # Metadados opcionais para descoberta de peers (Gossip)
-    if sender_host and sender_port:
-        message["sender_host"] = sender_host
-        message["sender_port"] = sender_port
+    if payload is None:
+        payload = {}
         
-    return message
+    return {
+        "type": msg_type,
+        "payload": payload,
+        "sender": sender_address # Formato "host:port"
+    }
 
-def to_json(message_dict):
-    """Serializa o dicionário para bytes prontos para envio no socket."""
-    return json.dumps(message_dict).encode(ENCODING)
+def send_tcp_message(sock, message_dict):
+    """
+    Formato de Transmissão (TCP): [4 bytes: tamanho big-endian] [N bytes: JSON UTF-8] [cite: 108-109]
+    """
+    msg_bytes = json.dumps(message_dict).encode(ENCODING)
+    # '>I' significa Big-Endian, Unsigned Integer de 4 bytes
+    size_prefix = struct.pack('>I', len(msg_bytes)) 
+    sock.sendall(size_prefix + msg_bytes)
 
-def from_json(bytes_data):
-    """Deserializa bytes recebidos do socket para dicionário Python."""
-    return json.loads(bytes_data.decode(ENCODING))
+def recvall(sock, n):
+    """Função auxiliar para garantir o recebimento de exatamente n bytes."""
+    data = bytearray()
+    while len(data) < n:
+        packet = sock.recv(n - len(data))
+        if not packet:
+            return None
+        data.extend(packet)
+    return data
+
+def recv_tcp_message(sock):
+    """Lê o prefixo de tamanho e depois o JSON exato."""
+    raw_msglen = recvall(sock, 4)
+    if not raw_msglen:
+        return None
+    
+    # Desempacota os 4 bytes big-endian para descobrir o tamanho
+    msglen = struct.unpack('>I', raw_msglen)[0]
+    
+    msg_bytes = recvall(sock, msglen)
+    if not msg_bytes:
+        return None
+        
+    return json.loads(msg_bytes.decode(ENCODING))

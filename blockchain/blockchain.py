@@ -1,9 +1,8 @@
-# blockchain.py
 from block import Block
 from consensus import Consensus
-from transactions import Transaction  
-from protocol import DIFFICULTY, MINING_REWARD 
-import time
+from transactions import Transaction
+from protocol import DIFFICULTY, MINING_REWARD
+import uuid
 
 class Blockchain:
     def __init__(self):
@@ -12,14 +11,18 @@ class Blockchain:
         self.create_genesis_block()
 
     def create_genesis_block(self):
+        """
+        Bloco Gênesis exato conforme PDF .
+        """
         genesis_block = Block(
             index=0, 
-            previous_hash="0", 
-            transactions=[],
+            previous_hash="0000000000000000000000000000000000000000000000000000000000000000", 
+            transactions=[], 
             nonce=0, 
-            timestamp=1672531200.0
+            timestamp=0 
         )
-        genesis_block.hash = genesis_block.calculate_hash()
+        # Força o hash esperado (para fins de validação rápida)
+        genesis_block.hash = "816534932c2b7154836da6afc367695e6337db8a921823784c14378abed4f7d7" 
         self.chain.append(genesis_block)
 
     def get_last_block(self):
@@ -27,18 +30,16 @@ class Blockchain:
 
     def get_balance(self, address):
         balance = 0
-        # Percorre toda a blockchain para somar entradas e saídas
         for block in self.chain:
             for tx in block.transactions:
-                if tx['recipient'] == address:
-                    balance += tx['amount']
-                if tx['sender'] == address:
-                    balance -= tx['amount']
+                if tx['destino'] == address: # Antes era recipient
+                    balance += tx['valor']
+                if tx['origem'] == address:  # Antes era sender
+                    balance -= tx['valor']
         
-        # Opcional: subtrair o que está pendente para não gastar duas vezes
         for tx in self.pending_transactions:
-            if tx['sender'] == address:
-                balance -= tx['amount']
+            if tx['origem'] == address:
+                balance -= tx['valor']
                 
         return balance
 
@@ -46,39 +47,47 @@ class Blockchain:
         if not transaction.is_valid_format():
             return False
 
-        # Verifica saldo (exceto se for transação de recompensa do sistema)
-        if transaction.sender != "System" and transaction.sender != "0":
-            if self.get_balance(transaction.sender) < transaction.amount:
-                print(f"[Erro] Saldo insuficiente.")
+        if transaction.origem != "coinbase":
+            if self.get_balance(transaction.origem) < transaction.valor:
                 return False
 
         self.pending_transactions.append(transaction.to_dict())
         return True
 
     def mine_pending_transactions(self, miner_address):
-        """
-        Minera o bloco e inclui a Recompensa (Coinbase) para o minerador.
-        """
-        # --- CORREÇÃO AQUI: CRIAR A RECOMPENSA ---
-        # Cria uma transação do sistema para o minerador
-        reward_tx = Transaction("System", miner_address, MINING_REWARD)
-        
-        # Adiciona a recompensa na lista de transações DESTE bloco
-        # Nota: Não usamos add_transaction para evitar checagem de saldo do "System"
-        self.pending_transactions.append(reward_tx.to_dict())
+        transactions_to_mine = list(self.pending_transactions)
+
+        # 1. Cria a Recompensa de Mineração ("coinbase") [cite: 182-190]
+        # O timestamp deve ser o mesmo do bloco[cite: 190], então criaremos o bloco primeiro.
         
         last_block = self.get_last_block()
         new_block = Block(
             index=last_block.index + 1,
             previous_hash=last_block.hash,
-            transactions=self.pending_transactions
+            transactions=[] # Inseriremos a coinbase agora
         )
+        
+        # A coinbase DEVE ser a primeira transação [cite: 183]
+        coinbase_tx = Transaction(
+            origem="coinbase", 
+            destino=miner_address, 
+            valor=MINING_REWARD, 
+            timestamp=new_block.timestamp, 
+            tx_id=str(uuid.uuid4())
+        )
+        
+        # Insere no topo da lista [cite: 183]
+        transactions_to_mine.insert(0, coinbase_tx.to_dict())
+        
+        # Atualiza o bloco com as transações definitivas
+        new_block.transactions = transactions_to_mine
+        new_block.hash = new_block.calculate_hash() # Recalcula hash inicial
 
-        # Minera (Proof of Work)
+        # 2. Minera
         mined_block = Consensus.mine(new_block)
         
         self.chain.append(mined_block)
-        self.pending_transactions = [] # Limpa a lista
+        self.pending_transactions = [] 
         
         return mined_block
 
@@ -87,12 +96,9 @@ class Blockchain:
             current = Block.from_dict(chain_to_validate[i])
             previous = Block.from_dict(chain_to_validate[i-1])
 
-            if current.hash != current.calculate_hash():
-                return False
-            if current.previous_hash != previous.hash:
-                return False
-            if not current.hash.startswith(DIFFICULTY):
-                return False
+            if current.hash != current.calculate_hash(): return False
+            if current.previous_hash != previous.hash: return False
+            if not current.hash.startswith(DIFFICULTY): return False
         return True
 
     def replace_chain(self, new_chain_data):

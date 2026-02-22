@@ -1,60 +1,39 @@
 import time
-import hashlib
-import json
+import uuid
 
 class Transaction:
-    def __init__(self, sender, recipient, amount, timestamp=None):
+    def __init__(self, origem, destino, valor, timestamp=None, tx_id=None):
         """
-        Cria uma nova transação.
-        Campos obrigatórios conforme especificação:
-        - origem (sender) 
-        - destino (recipient) 
-        - valor (amount) 
-        - timestamp 
+        Estrutura de dados exata conforme o PDF [cite: 121-127].
         """
-        self.sender = sender
-        self.recipient = recipient
-        self.amount = amount
-        self.timestamp = timestamp or time.time()
-        
-        # Gera o identificador único automaticamente no momento da criação
-        self.id = self.calculate_hash() 
-
-    def calculate_hash(self):
-        """Gera um hash SHA-256 único baseado nos dados da transação."""
-        # A string deve ser determinística para garantir que o ID seja sempre o mesmo para os mesmos dados
-        payload = f"{self.sender}{self.recipient}{self.amount}{self.timestamp}"
-        return hashlib.sha256(payload.encode()).hexdigest()
+        self.id = tx_id if tx_id else str(uuid.uuid4()) # "string-uuid" [cite: 123]
+        self.origem = origem                            # "string" [cite: 124]
+        self.destino = destino                          # "string" [cite: 125]
+        self.valor = float(valor)                       # float [cite: 126]
+        self.timestamp = timestamp if timestamp is not None else time.time() # float [cite: 127]
 
     def is_valid_format(self):
-        """
-        Valida regras internas da transação.
-        Regra: Ter somente valores positivos.
-        """
-        if self.amount <= 0:
+        if self.valor <= 0:
             return False
-        if not self.sender or not self.recipient:
+        if not self.origem or not self.destino:
             return False
         return True
 
     def to_dict(self):
-        """Serializa para envio via JSON/Socket."""
         return {
             "id": self.id,
-            "sender": self.sender,
-            "recipient": self.recipient,
-            "amount": self.amount,
+            "origem": self.origem,
+            "destino": self.destino,
+            "valor": self.valor,
             "timestamp": self.timestamp
         }
     
     @staticmethod
     def from_dict(data):
-        """Reconstrói o objeto a partir de um dicionário."""
-        tx = Transaction(
-            data['sender'], 
-            data['recipient'], 
-            data['amount'], 
-            data['timestamp']
+        return Transaction(
+            origem=data['origem'], 
+            destino=data['destino'], 
+            valor=data['valor'], 
+            timestamp=data.get('timestamp'),
+            tx_id=data.get('id')
         )
-        tx.id = data['id'] # Mantém o ID original
-        return tx
