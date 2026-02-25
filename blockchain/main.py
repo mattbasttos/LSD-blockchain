@@ -69,10 +69,31 @@ def main():
             node.broadcast(msg)
 
         elif opt == '3':
+            print("\n" + "="*60)
+            print("                HISTÓRICO DA BLOCKCHAIN")
+            print("="*60)
+            
+            if not blockchain.chain:
+                print("A blockchain está vazia.")
+            
             for b in blockchain.chain:
-                print(f"[Bloco {b.index}] Hash: {b.hash[:10]}... | Txs: {len(b.transactions)}")
+                print(f"\n[ BLOCO {b.index} ]")
+                print(f" • Índice do bloco     : {b.index}")
+                print(f" • Hash do bloco ant.  : {b.previous_hash}")
+                print(f" • Nonce               : {b.nonce}")
+                print(f" • Timestamp do bloco  : {b.timestamp}")
+                print(f" • Hash do bloco atual : {b.hash}")
+                print(f" • Lista de Transações : {len(b.transactions)} transação(ões)")
+                
                 for tx in b.transactions:
-                    print(f"   -> [{tx['origem']}] enviou {tx['valor']} para [{tx['destino']}]")
+                    print("\n      --- Transação ---")
+                    print(f"      Identificador único : {tx['id']}")
+                    print(f"      Origem              : {tx['origem']}")
+                    print(f"      Destino             : {tx['destino']}")
+                    print(f"      Valor               : {tx['valor']}")
+                    print(f"      Timestamp           : {tx['timestamp']}")
+                    print("      -----------------")
+            print("\n" + "="*60 + "\n")
 
         elif opt == '4':
             for p in node.peers: print(p)
