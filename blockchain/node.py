@@ -43,12 +43,14 @@ class Node:
 
     def handle_client(self, client_socket):
         try:
-            # Usa a nova função TCP segura com prefixo de tamanho [cite: 108-109]
+            # Usa a nova função TCP segura com prefixo de tamanho
             message = recv_tcp_message(client_socket)
             if message:
                 self.process_message(message)
+            else:
+                print("\n[Erro Rede] O pacote chegou vazio ou com tamanho incorreto.")
         except Exception as e:
-            print(f"[Erro Rede] {e}")
+            print(f"\n[Erro Fatal no Socket] Problema ao ler mensagem: {e}")
         finally:
             client_socket.close()
 
@@ -114,10 +116,13 @@ class Node:
         try:
             host, port = peer_address.split(":")
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(2)
+            s.settimeout(3) # Aumentei de 2 para 3 segundos para garantir
             s.connect((host, int(port)))
-            # Usa a nova função de envio seguro com os 4 bytes [cite: 108-109]
+            # Usa a nova função de envio seguro com os 4 bytes
             send_tcp_message(s, message_dict)
             s.close()
-        except:
-            pass # Peer offline
+        except ConnectionRefusedError:
+            print(f"\n[Aviso] O nó {peer_address} está offline ou recusou a conexão.")
+        except Exception as e:
+            # AQUI ESTAVA O 'pass' QUE NOS DEIXOU CEGOS!
+            print(f"\n[ERRO CRÍTICO DE ENVIO] Falha ao enviar para {peer_address}. Detalhes: {e}")
