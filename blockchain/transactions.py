@@ -3,14 +3,11 @@ import uuid
 
 class Transaction:
     def __init__(self, origem, destino, valor, timestamp=None, tx_id=None):
-        """
-        Estrutura de dados exata conforme o PDF [cite: 121-127].
-        """
-        self.id = tx_id if tx_id else str(uuid.uuid4()) # "string-uuid" [cite: 123]
-        self.origem = origem                            # "string" [cite: 124]
-        self.destino = destino                          # "string" [cite: 125]
-        self.valor = float(valor)                       # float [cite: 126]
-        self.timestamp = timestamp if timestamp is not None else time.time() # float [cite: 127]
+        self.id = tx_id if tx_id else str(uuid.uuid4()) # "string-uuid" 
+        self.origem = origem                            # "string" 
+        self.destino = destino                          # "string" 
+        self.valor = float(valor)                       # float 
+        self.timestamp = timestamp if timestamp is not None else time.time() # float 
 
     def is_valid_format(self):
         if self.valor <= 0:

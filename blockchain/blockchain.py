@@ -11,11 +11,6 @@ class Blockchain:
         self.create_genesis_block()
 
     def create_genesis_block(self):
-        """
-        Bloco Gênesis exato. 
-        O calculate_hash() natural usando as regras (sort_keys=True) 
-        irá gerar exatamente o hash 0567c32b97c...
-        """
         genesis_block = Block(
             index=0, 
             previous_hash="0000000000000000000000000000000000000000000000000000000000000000",
@@ -61,8 +56,7 @@ class Blockchain:
     def mine_pending_transactions(self, miner_address):
         transactions_to_mine = list(self.pending_transactions)
 
-        # 1. Cria a Recompensa de Mineração ("coinbase") [cite: 182-190]
-        # O timestamp deve ser o mesmo do bloco[cite: 190], então criaremos o bloco primeiro.
+        # 1. Cria a Recompensa de Mineração ("coinbase") 
         
         last_block = self.get_last_block()
         new_block = Block(
@@ -71,7 +65,7 @@ class Blockchain:
             transactions=[] # Inseriremos a coinbase agora
         )
         
-        # A coinbase DEVE ser a primeira transação [cite: 183]
+        # A coinbase DEVE ser a primeira transação 
         coinbase_tx = Transaction(
             origem="coinbase", 
             destino=miner_address, 
@@ -80,7 +74,7 @@ class Blockchain:
             tx_id=str(uuid.uuid4())
         )
         
-        # Insere no topo da lista [cite: 183]
+        # Insere no topo da lista 
         transactions_to_mine.insert(0, coinbase_tx.to_dict())
         
         # Atualiza o bloco com as transações definitivas
@@ -137,6 +131,5 @@ class Blockchain:
             print("[Consenso] Cadeia rejeitada: Falha nas regras de integridade.")
             return False
             
-        # Tudo certo! Adotamos a nova cadeia
         self.chain = [Block.from_dict(b) for b in new_chain_data]
         return True

@@ -13,9 +13,6 @@ class Block:
         self.hash = self.calculate_hash()
 
     def calculate_hash(self):
-        """
-        Cálculo de Hash rigoroso conforme página 3 do documento [cite: 144-156].
-        """
         block_data = {
             "index": self.index,
             "previous_hash": self.previous_hash,

@@ -85,7 +85,7 @@ class Node:
                     self.broadcast(build_message(REQUEST_CHAIN, {}, self.address))
 
         elif msg_type == REQUEST_CHAIN:
-            # Formato de envio: {"blockchain": {"chain": [...], "pending_transactions": [...]}} [cite: 137-141]
+            # Formato de envio: {"blockchain": {"chain": [...], "pending_transactions": [...]}} 
             payload_data = {
                 "blockchain": {
                     "chain": [b.to_dict() for b in self.blockchain.chain],
@@ -116,13 +116,11 @@ class Node:
         try:
             host, port = peer_address.split(":")
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(3) # Aumentei de 2 para 3 segundos para garantir
+            s.settimeout(3) 
             s.connect((host, int(port)))
-            # Usa a nova função de envio seguro com os 4 bytes
             send_tcp_message(s, message_dict)
             s.close()
         except ConnectionRefusedError:
             print(f"\n[Aviso] O nó {peer_address} está offline ou recusou a conexão.")
         except Exception as e:
-            # AQUI ESTAVA O 'pass' QUE NOS DEIXOU CEGOS!
             print(f"\n[ERRO CRÍTICO DE ENVIO] Falha ao enviar para {peer_address}. Detalhes: {e}")
