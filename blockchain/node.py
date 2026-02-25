@@ -98,10 +98,13 @@ class Node:
             blockchain_data = payload.get("blockchain", {})
             chain_data = blockchain_data.get("chain", [])
             
+            print(f"\n[*] Recebida blockchain da rede com {len(chain_data)} blocos. Analisando...")
+            
             if self.blockchain.replace_chain(chain_data):
-                # Se a cadeia for substituída, atualiza as pendentes também
                 self.blockchain.pending_transactions = blockchain_data.get("pending_transactions", [])
-                print("[Consenso] Blockchain sincronizada com sucesso.")
+                print("[Sucesso] Blockchain sincronizada e atualizada com sucesso!\n")
+            else:
+                print("[Aviso] A blockchain local foi mantida.\n")
 
     def broadcast(self, message_dict):
         for peer in list(self.peers):
